@@ -2,30 +2,7 @@ AWSTemplateFormatVersion: "2010-09-09"
 
 Description: "CloudFormation template for WordPress deployment"
 
-Metadata:
-  AWS::CloudFormation::Interface:
-    ParameterGroups:
-      - Label:
-          default: General Parameters
-        Parameters:
-          - VPCStackName
-          - KeyName
-          - SSHLocation
-          - NotificationEmail
-      - Label:
-          default: EC2 Parameters
-        Parameters:
-          - InstanceType
-          - LatestAmiId
-      - Label:
-          default: Database Parameters
-        Parameters:
-          - DBName
-          - DBUsername
-          - DBPassword
-          - DBInstanceClass
-          - DBAllocatedStorage
-
+# Parâmetros para personalizar a implantação
 Parameters:
   VPCStackName:
     Type: String
@@ -99,6 +76,7 @@ Parameters:
     AllowedPattern: (\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})/(\d{1,2})
     ConstraintDescription: must be a valid IP CIDR range of the form x.x.x.x/x.
 
+  # Usa a AMI mais recente do Amazon Linux 2023
   LatestAmiId:
     Type: "AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>"
     Default: "/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-6.1-x86_64"
@@ -109,8 +87,9 @@ Parameters:
     AllowedPattern: "^[\\w-\\.]+@([\\w-]+\\.)+[\\w-]{2,4}$"
     ConstraintDescription: "Must be a valid email address."
 
+# Definição dos recursos da infraestrutura
 Resources:
-  # WordPress Security Group
+  # Grupo de segurança para o servidor web WordPress
   WebServerSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
@@ -119,15 +98,15 @@ Resources:
         - IpProtocol: tcp
           FromPort: 80
           ToPort: 80
-          CidrIp: 0.0.0.0/0
+          CidrIp: 0.0.0.0/0 # Permite acesso HTTP de qualquer lugar
         - IpProtocol: tcp
           FromPort: 22
           ToPort: 22
           CidrIp: !Ref SSHLocation
       VpcId:
-        Fn::ImportValue: !Sub "${VPCStackName}-VPCID"
+        Fn::ImportValue: !Sub "${VPCStackName}-VPCID" # Referencia a VPC de outro stack
 
-  # MySQL RDS Security Group
+  # Grupo de segurança para o banco de dados RDS
   DBSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     DeletionPolicy: Delete
@@ -138,11 +117,11 @@ Resources:
         - IpProtocol: tcp
           FromPort: 3306
           ToPort: 3306
-          SourceSecurityGroupId: !Ref WebServerSecurityGroup
+          SourceSecurityGroupId: !Ref WebServerSecurityGroup # Permite acesso apenas do servidor web
       VpcId:
         Fn::ImportValue: !Sub "${VPCStackName}-VPCID"
 
-  # WordPress Instance
+  # Instância EC2 para o WordPress
   WebServerInstance:
     Type: AWS::EC2::Instance
     Metadata:
@@ -226,7 +205,7 @@ Resources:
         - AssociatePublicIpAddress: true
           DeviceIndex: 0
           SubnetId:
-            Fn::ImportValue: !Sub "${VPCStackName}-PublicSubnet1ID"
+            Fn::ImportValue: !Sub "${VPCStackName}-PublicSubnet1ID" # Usa subnet pública do stack VPC
           GroupSet:
             - !Ref WebServerSecurityGroup
       UserData:
@@ -236,16 +215,16 @@ Resources:
 
           mkdir -p /var/www/html/wordpress
 
-          # Initialize CloudFormation 
+          # Initialize CloudFormation Init
           /opt/aws/bin/cfn-init -v --stack ${AWS::StackName} --resource WebServerInstance --configsets wordpress_install --region ${AWS::Region} || exit 1
 
           # Signal CloudFormation that the instance is ready
           /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource WebServerInstance --region ${AWS::Region} || exit 1
     CreationPolicy:
       ResourceSignal:
-        Timeout: PT5M
+        Timeout: PT10M # Espera até 10 minutos pela sinalização de conclusão
 
-  # MySQL Database (RDS)
+  # Instância RDS para o banco de dados MySQL
   WordPressDB:
     Type: AWS::RDS::DBInstance
     DeletionPolicy: Delete
@@ -260,11 +239,11 @@ Resources:
       PubliclyAccessible: false
       VPCSecurityGroups:
         - !Ref DBSecurityGroup
-      MultiAZ: false
-      BackupRetentionPeriod: 7
+      MultiAZ: false # Configuração de zona única para reduzir custos
+      BackupRetentionPeriod: 7 # Mantém backups por 7 dias
       DBSubnetGroupName: !Ref DBSubnetGroup
 
-  # DB Subnet Group
+  # Grupo de subnets para o RDS
   DBSubnetGroup:
     Type: AWS::RDS::DBSubnetGroup
     DeletionPolicy: Delete
@@ -272,15 +251,16 @@ Resources:
     Properties:
       DBSubnetGroupDescription: "Subnets available for the RDS DB Instance"
       SubnetIds:
-        - Fn::ImportValue: !Sub "${VPCStackName}-PrivateSubnet1ID"
+        - Fn::ImportValue: !Sub "${VPCStackName}-PrivateSubnet1ID" # Usa subnets privadas do stack VPC
         - Fn::ImportValue: !Sub "${VPCStackName}-PrivateSubnet2ID"
 
-  # SNS Topic
+  # Tópico SNS para notificações
   SNSNotificationTopic:
     Type: AWS::SNS::Topic
     Properties:
       DisplayName: "CloudFormation Notifications"
 
+  # Inscrição de email no tópico SNS
   EmailSubscription:
     Type: AWS::SNS::Subscription
     Properties:
@@ -288,13 +268,16 @@ Resources:
       Protocol: email
       Endpoint: !Ref NotificationEmail
 
+# Saídas para referência após a criação do stack
 Outputs:
   WebsiteURL:
     Description: WordPress Website URL
     Value: !Sub "http://${WebServerInstance.PublicDnsName}/wordpress"
+  
   DBEndpoint:
     Description: Database Endpoint
     Value: !GetAtt WordPressDB.Endpoint.Address
+  
   SNSArn:
     Description: "SNS Topic ARN"
     Value: !Ref SNSNotificationTopic

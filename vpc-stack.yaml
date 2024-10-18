@@ -2,21 +2,7 @@ AWSTemplateFormatVersion: "2010-09-09"
 
 Description: "CloudFormation template for VPC creation"
 
-Metadata:
-  AWS::CloudFormation::Interface:
-    ParameterGroups:
-      - Label:
-          default: VPC Parameters
-        Parameters:
-          - VPCCidrBlock
-          - PublicSubnet1CIDR
-          - PrivateSubnet1CIDR
-          - PrivateSubnet2CIDR
-      - Label:
-          default: Environment Parameters
-        Parameters:
-          - EnvironmentType
-
+# Parâmetros para personalizar a implantação
 Parameters:
   VPCCidrBlock:
     Type: String
@@ -56,10 +42,15 @@ Parameters:
   EnvironmentType:
     Type: String
     Default: Development
+    AllowedValues:
+      - Development
+      - Production
     Description: Environment type
     ConstraintDescription: must be one of the allowed values
 
+# Criação dos recursos de rede, incluindo a VPC, sub-redes públicas e privadas, gateway de internet e tabelas de rotas.
 Resources:
+ # Cria a VPC com suporte a DNS e especifica seu bloco CIDR.
   VPC:
     Type: AWS::EC2::VPC
     Properties:
@@ -73,7 +64,7 @@ Resources:
         - Key: Environment
           Value: !Sub "${EnvironmentType}"
 
-  # Internet Gateway
+  # Cria um Internet Gateway e o associa à VPC.
   InternetGateway:
     Type: AWS::EC2::InternetGateway
     Properties:
@@ -89,7 +80,7 @@ Resources:
       InternetGatewayId: !Ref InternetGateway
       VpcId: !Ref VPC
 
-  # Public Subnet 1
+  # Cria a primeira sub-rede pública e permite atribuir endereços IP públicos automaticamente.
   PublicSubnet1:
     Type: AWS::EC2::Subnet
     Properties:
@@ -103,7 +94,7 @@ Resources:
         - Key: Environment
           Value: !Sub "${EnvironmentType}"
 
-  # Private Subnet 1
+  # Cria a primeira sub-rede privada
   PrivateSubnet1:
     Type: AWS::EC2::Subnet
     Properties:
@@ -117,7 +108,7 @@ Resources:
         - Key: Environment
           Value: !Sub "${EnvironmentType}"
 
-  # Private Subnet 2
+  # Cria a segunda sub-rede privada
   PrivateSubnet2:
     Type: AWS::EC2::Subnet
     Properties:
@@ -131,7 +122,7 @@ Resources:
         - Key: Environment
           Value: !Sub "${EnvironmentType}"
 
-  # Public Route Table
+  # Cria uma tabela de rotas para a sub-rede pública.
   PublicRouteTable:
     Type: AWS::EC2::RouteTable
     Properties:
@@ -142,7 +133,7 @@ Resources:
         - Key: Environment
           Value: !Sub "${EnvironmentType}"
 
-  # Private Route Table
+  # Cria uma tabela de rotas para as sub-redes privadas.
   PrivateRouteTable:
     Type: AWS::EC2::RouteTable
     Properties:
@@ -153,19 +144,21 @@ Resources:
         - Key: Environment
           Value: !Sub "${EnvironmentType}"
 
+  # Associa a tabela de rotas privada à primeira sub-rede privada.
   PrivateSubnet1RouteTableAssociation:
     Type: AWS::EC2::SubnetRouteTableAssociation
     Properties:
       RouteTableId: !Ref PrivateRouteTable
       SubnetId: !Ref PrivateSubnet1
 
+  # Associa a tabela de rotas privada à segunda sub-rede privada.
   PrivateSubnet2RouteTableAssociation:
     Type: AWS::EC2::SubnetRouteTableAssociation
     Properties:
       RouteTableId: !Ref PrivateRouteTable
       SubnetId: !Ref PrivateSubnet2
 
-  # Default Public Route
+  # Cria a rota padrão para a internet na tabela de rotas pública, usando o Internet Gateway.
   DefaultPublicRoute:
     Type: AWS::EC2::Route
     DependsOn: InternetGatewayAttachment
@@ -174,12 +167,14 @@ Resources:
       DestinationCidrBlock: 0.0.0.0/0
       GatewayId: !Ref InternetGateway
 
+  # Associa a tabela de rotas pública à primeira sub-rede pública.
   PublicSubnet1RouteTableAssociation:
     Type: AWS::EC2::SubnetRouteTableAssociation
     Properties:
       RouteTableId: !Ref PublicRouteTable
       SubnetId: !Ref PublicSubnet1
 
+# Saídas para exportar os IDs dos recursos criados, como a VPC e as sub-redes.
 Outputs:
   VPC:
     Description: A reference to the created VPC
