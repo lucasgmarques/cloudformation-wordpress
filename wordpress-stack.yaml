@@ -1,6 +1,6 @@
 AWSTemplateFormatVersion: "2010-09-09"
 
-Description: "CloudFormation template for WordPress deployment"
+Description: "Template CloudFormation para implantação do WordPress"
 
 # Parâmetros para personalizar a implantação
 Parameters:
@@ -80,12 +80,6 @@ Parameters:
   LatestAmiId:
     Type: "AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>"
     Default: "/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-6.1-x86_64"
-
-  NotificationEmail:
-    Type: String
-    Description: "Email address to receive SNS notifications"
-    AllowedPattern: "^[\\w-\\.]+@([\\w-]+\\.)+[\\w-]{2,4}$"
-    ConstraintDescription: "Must be a valid email address."
 
 # Definição dos recursos da infraestrutura
 Resources:
@@ -215,14 +209,14 @@ Resources:
 
           mkdir -p /var/www/html/wordpress
 
-          # Initialize CloudFormation Init
+          # Inicializa o CloudFormation Init
           /opt/aws/bin/cfn-init -v --stack ${AWS::StackName} --resource WebServerInstance --configsets wordpress_install --region ${AWS::Region} || exit 1
 
-          # Signal CloudFormation that the instance is ready
+          # Sinaliza ao CloudFormation que a instância está pronta
           /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource WebServerInstance --region ${AWS::Region} || exit 1
     CreationPolicy:
       ResourceSignal:
-        Timeout: PT10M # Espera até 10 minutos pela sinalização de conclusão
+        Timeout: PT5M # Espera até 5 minutos pela sinalização de conclusão
 
   # Instância RDS para o banco de dados MySQL
   WordPressDB:
@@ -240,7 +234,7 @@ Resources:
       VPCSecurityGroups:
         - !Ref DBSecurityGroup
       MultiAZ: false # Configuração de zona única para reduzir custos
-      BackupRetentionPeriod: 7 # Mantém backups por 7 dias
+      BackupRetentionPeriod: 7
       DBSubnetGroupName: !Ref DBSubnetGroup
 
   # Grupo de subnets para o RDS
@@ -254,20 +248,6 @@ Resources:
         - Fn::ImportValue: !Sub "${VPCStackName}-PrivateSubnet1ID" # Usa subnets privadas do stack VPC
         - Fn::ImportValue: !Sub "${VPCStackName}-PrivateSubnet2ID"
 
-  # Tópico SNS para notificações
-  SNSNotificationTopic:
-    Type: AWS::SNS::Topic
-    Properties:
-      DisplayName: "CloudFormation Notifications"
-
-  # Inscrição de email no tópico SNS
-  EmailSubscription:
-    Type: AWS::SNS::Subscription
-    Properties:
-      TopicArn: !Ref SNSNotificationTopic
-      Protocol: email
-      Endpoint: !Ref NotificationEmail
-
 # Saídas para referência após a criação do stack
 Outputs:
   WebsiteURL:
@@ -277,7 +257,3 @@ Outputs:
   DBEndpoint:
     Description: Database Endpoint
     Value: !GetAtt WordPressDB.Endpoint.Address
-  
-  SNSArn:
-    Description: "SNS Topic ARN"
-    Value: !Ref SNSNotificationTopic

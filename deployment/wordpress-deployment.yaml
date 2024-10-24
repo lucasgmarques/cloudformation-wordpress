@@ -9,5 +9,4 @@ parameters:
   DBInstanceClass: db.t3.medium
   DBAllocatedStorage: 20
   SSHLocation: 0.0.0.0/0
-  NotificationEmail: lucasg3.gdh@gmail.com
 tags: {}

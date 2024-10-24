@@ -1,6 +1,6 @@
 AWSTemplateFormatVersion: "2010-09-09"
 
-Description: "CloudFormation template for VPC creation"
+Description: "Template CloudFormation para criação da VPC do WordPress"
 
 # Parâmetros para personalizar a implantação
 Parameters:
@@ -48,7 +48,7 @@ Parameters:
     Description: Environment type
     ConstraintDescription: must be one of the allowed values
 
-# Criação dos recursos de rede, incluindo a VPC, sub-redes públicas e privadas, gateway de internet e tabelas de rotas.
+# Criação dos recursos de rede, incluindo a VPC, sub-redes públicas e privadas, Gateway de Internet e tabelas de rotas.
 Resources:
  # Cria a VPC com suporte a DNS e especifica seu bloco CIDR.
   VPC:
@@ -64,7 +64,7 @@ Resources:
         - Key: Environment
           Value: !Sub "${EnvironmentType}"
 
-  # Cria um Internet Gateway e o associa à VPC.
+  # Cria um Gateway de Internet e o associa à VPC.
   InternetGateway:
     Type: AWS::EC2::InternetGateway
     Properties:
@@ -158,7 +158,7 @@ Resources:
       RouteTableId: !Ref PrivateRouteTable
       SubnetId: !Ref PrivateSubnet2
 
-  # Cria a rota padrão para a internet na tabela de rotas pública, usando o Internet Gateway.
+  # Cria a rota padrão para a Internet na tabela de rotas pública, usando o Gateway de Internet.
   DefaultPublicRoute:
     Type: AWS::EC2::Route
     DependsOn: InternetGatewayAttachment
