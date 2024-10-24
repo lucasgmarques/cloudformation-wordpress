@@ -1,8 +1,8 @@
 AWSTemplateFormatVersion: "2010-09-09"
 
-Description: "Template CloudFormation para implantação do WordPress"
+Description: "CloudFormation Template for WordPress Deployment"
 
-# Parâmetros para personalizar a implantação
+# Parametros para personalizar a implantacao
 Parameters:
   VPCStackName:
     Type: String
@@ -81,9 +81,9 @@ Parameters:
     Type: "AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>"
     Default: "/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-6.1-x86_64"
 
-# Definição dos recursos da infraestrutura
+# Definicao dos recursos da infraestrutura
 Resources:
-  # Grupo de segurança para o servidor web WordPress
+  # Grupo de seguranca para o servidor web WordPress
   WebServerSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
@@ -100,7 +100,7 @@ Resources:
       VpcId:
         Fn::ImportValue: !Sub "${VPCStackName}-VPCID" # Referencia a VPC de outro stack
 
-  # Grupo de segurança para o banco de dados RDS
+  # Grupo de seguranca para o banco de dados RDS
   DBSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     DeletionPolicy: Delete
@@ -199,7 +199,7 @@ Resources:
         - AssociatePublicIpAddress: true
           DeviceIndex: 0
           SubnetId:
-            Fn::ImportValue: !Sub "${VPCStackName}-PublicSubnet1ID" # Usa subnet pública do stack VPC
+            Fn::ImportValue: !Sub "${VPCStackName}-PublicSubnet1ID" # Usa subnet publica do stack VPC
           GroupSet:
             - !Ref WebServerSecurityGroup
       UserData:
@@ -216,9 +216,9 @@ Resources:
           /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource WebServerInstance --region ${AWS::Region} || exit 1
     CreationPolicy:
       ResourceSignal:
-        Timeout: PT5M # Espera até 5 minutos pela sinalização de conclusão
+        Timeout: PT5M # Espera ate 5 minutos pela sinalizacao de conclusao
 
-  # Instância RDS para o banco de dados MySQL
+  # Instancia RDS para o banco de dados MySQL
   WordPressDB:
     Type: AWS::RDS::DBInstance
     DeletionPolicy: Delete
@@ -233,7 +233,7 @@ Resources:
       PubliclyAccessible: false
       VPCSecurityGroups:
         - !Ref DBSecurityGroup
-      MultiAZ: false # Configuração de zona única para reduzir custos
+      MultiAZ: false # Configuracao de zona unica para reduzir custos
       BackupRetentionPeriod: 7
       DBSubnetGroupName: !Ref DBSubnetGroup
 
@@ -248,7 +248,7 @@ Resources:
         - Fn::ImportValue: !Sub "${VPCStackName}-PrivateSubnet1ID" # Usa subnets privadas do stack VPC
         - Fn::ImportValue: !Sub "${VPCStackName}-PrivateSubnet2ID"
 
-# Saídas para referência após a criação do stack
+# Saidas para referência apos a criacao do stack
 Outputs:
   WebsiteURL:
     Description: WordPress Website URL

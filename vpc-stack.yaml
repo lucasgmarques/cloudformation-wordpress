@@ -1,8 +1,8 @@
 AWSTemplateFormatVersion: "2010-09-09"
 
-Description: "Template CloudFormation para criação da VPC do WordPress"
+Description: "AWS CloudFormation template to provision a fully customizable VPC with public and private subnets, routing, and internet gateway."
 
-# Parâmetros para personalizar a implantação
+# Parametros para personalizar a implantacao
 Parameters:
   VPCCidrBlock:
     Type: String
@@ -48,7 +48,7 @@ Parameters:
     Description: Environment type
     ConstraintDescription: must be one of the allowed values
 
-# Criação dos recursos de rede, incluindo a VPC, sub-redes públicas e privadas, Gateway de Internet e tabelas de rotas.
+# Criacao dos recursos de rede, incluindo a VPC, sub-redes publicas e privadas, Gateway de Internet e tabelas de rotas.
 Resources:
  # Cria a VPC com suporte a DNS e especifica seu bloco CIDR.
   VPC:
@@ -64,7 +64,7 @@ Resources:
         - Key: Environment
           Value: !Sub "${EnvironmentType}"
 
-  # Cria um Gateway de Internet e o associa à VPC.
+  # Cria um Gateway de Internet e o associa a VPC.
   InternetGateway:
     Type: AWS::EC2::InternetGateway
     Properties:
@@ -80,7 +80,7 @@ Resources:
       InternetGatewayId: !Ref InternetGateway
       VpcId: !Ref VPC
 
-  # Cria a primeira sub-rede pública e permite atribuir endereços IP públicos automaticamente.
+  # Cria a primeira sub-rede publica e permite atribuir enderecos IP publicos automaticamente.
   PublicSubnet1:
     Type: AWS::EC2::Subnet
     Properties:
@@ -122,7 +122,7 @@ Resources:
         - Key: Environment
           Value: !Sub "${EnvironmentType}"
 
-  # Cria uma tabela de rotas para a sub-rede pública.
+  # Cria uma tabela de rotas para a sub-rede publica.
   PublicRouteTable:
     Type: AWS::EC2::RouteTable
     Properties:
@@ -144,21 +144,21 @@ Resources:
         - Key: Environment
           Value: !Sub "${EnvironmentType}"
 
-  # Associa a tabela de rotas privada à primeira sub-rede privada.
+  # Associa a tabela de rotas privada a primeira sub-rede privada.
   PrivateSubnet1RouteTableAssociation:
     Type: AWS::EC2::SubnetRouteTableAssociation
     Properties:
       RouteTableId: !Ref PrivateRouteTable
       SubnetId: !Ref PrivateSubnet1
 
-  # Associa a tabela de rotas privada à segunda sub-rede privada.
+  # Associa a tabela de rotas privada a segunda sub-rede privada.
   PrivateSubnet2RouteTableAssociation:
     Type: AWS::EC2::SubnetRouteTableAssociation
     Properties:
       RouteTableId: !Ref PrivateRouteTable
       SubnetId: !Ref PrivateSubnet2
 
-  # Cria a rota padrão para a Internet na tabela de rotas pública, usando o Gateway de Internet.
+  # Cria a rota padrao para a Internet na tabela de rotas publica, usando o Gateway de Internet.
   DefaultPublicRoute:
     Type: AWS::EC2::Route
     DependsOn: InternetGatewayAttachment
@@ -167,14 +167,14 @@ Resources:
       DestinationCidrBlock: 0.0.0.0/0
       GatewayId: !Ref InternetGateway
 
-  # Associa a tabela de rotas pública à primeira sub-rede pública.
+  # Associa a tabela de rotas publica a primeira sub-rede publica.
   PublicSubnet1RouteTableAssociation:
     Type: AWS::EC2::SubnetRouteTableAssociation
     Properties:
       RouteTableId: !Ref PublicRouteTable
       SubnetId: !Ref PublicSubnet1
 
-# Saídas para exportar os IDs dos recursos criados, como a VPC e as sub-redes.
+# Saidas para exportar os IDs dos recursos criados, como a VPC e as sub-redes.
 Outputs:
   VPC:
     Description: A reference to the created VPC
